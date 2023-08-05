@@ -25,18 +25,18 @@ def search_bing(query):
     return results
 
 ### ChatGPT
-def get_prompt_str_using_bing(search_query, data):
+def get_prompt_str_using_search_query(search_query, data, language):
     data_str = '\n'.join(data) 
     prompt = f"""
     Question: {search_query}
     Input: {data_str}
     Output: 
-    - Return code to create an embeddable HTML visualization widget with above data in streamlit
+    - Return code to create an embeddable HTML visualization widget with above data {f"in {language}"}
     - Aim to answer the question and include relevant info in your visualization
     - Minimize error
     - Do not include any explanation in your response. Make the code runnable as is
     - Make sure to not include any code block markup or delimiters in your response
-    - Make the visualization look great. eg. Feel free to include images in your response
+    - Make the visualization look great. eg. Feel free to include images in your HTML
     """
 
     #returning as HTML so we don't need to execute in streamlit
@@ -59,24 +59,36 @@ def ask_gpt(prompt):
         messages=messages,     # TODO: add token limit check and/or truncate input messages
         temperature=0, # this is the degree of randomness of the model's output
     )
-    return response.choices[0].message["content"]
+    prompt_text = response.choices[0].message["content"]
 
-def execute_gpt_wrapper(prompt_input, mode="code"): # mode: "code" or "html"
+    return prompt_text
+
+def execute_gpt_wrapper(): # mode: "code" or "html"
     # Ask GPT, measure prompt execution time
     prompt_start_time = time.time()
-    html_response = ask_gpt(prompt=prompt_input)
+    prompt_input_html = get_prompt_str_using_search_query(search_query=search_query, data=all_snippets, language="html")
+    prompt_input_code = get_prompt_str_using_search_query(search_query=search_query, data=all_snippets, language="streamlit")
+    html_response = ask_gpt(prompt=prompt_input_html)
     prompt_end_time = time.time()
-    prompt_execution_time = prompt_end_time - prompt_start_time
-    st.write(f"GPT execution time: {prompt_execution_time:.2f} seconds")
+    code_response = ask_gpt(prompt=prompt_input_code)
     
-    if mode == "code":
-        display_code(html_response)
-    else:
+    # Render in frontend
+    with html_tab:
+        html_response = html_response.strip('```html')
         display_html(html_response)
+        prompt_execution_time = prompt_end_time - prompt_start_time
+        st.write(f"GPT execution time: {prompt_execution_time:.2f} seconds")
+    with code_tab:
+        display_code(code_response)
+        st.write(f"GPT execution time: {(time.time()-prompt_end_time):.2f} seconds")
+
     return html_response
 
 ### Display
 def display_code(code_response):
+    # ensure ```python``` is removed
+    code_response = code_response.strip('```python')
+
     # Display in code (important: check the code to avoid security risks)
     st.write("Code from GPT:")
     st.code(code_response)
@@ -87,6 +99,8 @@ def display_code(code_response):
         exec(code_response)
 
 def display_html(html_response):
+    # ensure ```html``` is removed
+    # html_response = html_response.strip('```html')
     # Display in html
     # There’s also a components.iframe in case you want to embed an external website into Streamlit, such as components.iframe("https://docs.streamlit.io/en/latest")
     st.components.v1.html(html_response, height=600)
@@ -103,9 +117,10 @@ if query:
         # st.markdown(f"[{result['name']}]({result['url']})")
         
         all_snippets.append(result['snippet'])
+
+    html_tab, code_tab = st.tabs(["Html", "Code"])
     
-    prompt_input = get_prompt_str_using_bing(search_query=search_query, data=all_snippets)
-    html_response = execute_gpt_wrapper(prompt_input, mode="code")
+    html_response = execute_gpt_wrapper()
 
     while not html_response:
         time.sleep(2)
@@ -115,4 +130,4 @@ if query:
         feedback = st.text_input("I'd like to iterate on...")
         
         if feedback:
-            execute_gpt_wrapper(prompt_input)
+            execute_gpt_wrapper()
