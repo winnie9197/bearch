@@ -49,6 +49,7 @@ def get_prompt_iterate_accuracy(feedback):
     return prompt
 
 def ask_gpt(prompt):
+    messages = []
     messages.append({       
         "role": "user", 
         "content": prompt
@@ -66,7 +67,7 @@ def ask_gpt(prompt):
 def execute_gpt_wrapper(): # mode: "code" or "html"
     # Ask GPT, measure prompt execution time
     prompt_start_time = time.time()
-    prompt_input_html = get_prompt_str_using_search_query(search_query=search_query, data=all_snippets, language="html")
+    prompt_input_html = get_prompt_str_using_search_query(search_query=search_query, data=all_snippets, language="plain html")
     prompt_input_code = get_prompt_str_using_search_query(search_query=search_query, data=all_snippets, language="streamlit")
     html_response = ask_gpt(prompt=prompt_input_html)
     prompt_end_time = time.time()
@@ -77,10 +78,10 @@ def execute_gpt_wrapper(): # mode: "code" or "html"
         html_response = html_response.strip('```html')
         display_html(html_response)
         prompt_execution_time = prompt_end_time - prompt_start_time
-        st.write(f"GPT execution time: {prompt_execution_time:.2f} seconds")
+        # st.write(f"GPT execution time: {prompt_execution_time:.2f} seconds")
     with code_tab:
         display_code(code_response)
-        st.write(f"GPT execution time: {(time.time()-prompt_end_time):.2f} seconds")
+        # st.write(f"GPT execution time: {(time.time()-prompt_end_time):.2f} seconds")
 
     return html_response
 
