@@ -1,4 +1,4 @@
-# widget-ui
+# search-ui
 
 v0.1
 - Set up Streamlit app
