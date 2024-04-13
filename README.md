@@ -1,4 +1,4 @@
-# search-ui
+# Bearch
 
 v1
 - Set up Streamlit app
